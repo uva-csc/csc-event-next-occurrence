@@ -62,10 +62,13 @@ function _csc_event_next_occurrence_update_node(Node $node) {
 
     if($last_occurrence) {
       $dateval = date('Y-m-d\TH:i:s', $last_occurrence);
+      $node->set('field_end_date', $dateval);
+      /* old way doesn't save it
       $end_date_field = $node->get('field_end_date');
       $end_date_field->setValue([
         ['value' => $dateval]
       ]);
+      */
     }
   }
 }
