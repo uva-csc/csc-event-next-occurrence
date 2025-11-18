@@ -11,6 +11,43 @@ use Drupal\Core\Form\FormStateInterface;
  */
 
 /**
+ * Implements hook_form_alter().
+ */
+function csc_event_next_occurrence_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+
+  if ($form_id === 'node_event_form') {
+    $form['field_end_date'] = [
+      '#type' => 'markup',
+      '#markup' => '<div class="form-item"><h4 class="form-item__label">End Date</h4><p>This field will be automatically calculated upon saving.</p></div>',
+      '#weight' => $form['field_end_date']['#weight'] ?? 0,
+    ];
+    $form['field_next_occurrence'] = [
+      '#type' => 'markup',
+      '#markup' => '<div class="form-item"><h4 class="form-item__label">Next Occurrence</h4><p>This field will be automatically calculated upon saving.</p></div>',
+      '#weight' => $form['field_end_date']['#weight'] ?? 0,
+    ];
+  }
+
+  // Target the node edit form for "event" content type
+  if ($form_id === 'node_event_edit_form') {
+
+    $node = $form_state->getFormObject()->getEntity();
+
+    if ($node->hasField('field_end_date')) {
+      // Show the End date value in the field and make it read only
+      $end_date_value = $node->get('field_end_date')->value;
+
+      // Convert to DrupalDateTime — required for datetime widgets.
+      $date_object = new DrupalDateTime($end_date_value);
+
+      // Set as the widget's default value.
+      $form['field_end_date']['widget'][0]['value']['#attributes']['readonly'] = 'readonly';
+      $form['field_end_date']['widget'][0]['value']['#default_value'] = $date_object;
+    }
+  }
+}
+
+/**
  * Implements hook_form_FORM_ID_alter() for event node edit form.
  */
 function csc_event_next_occurrence_form_node_event_edit_form_alter(&$form, FormStateInterface $form_state, $form_id) {
@@ -22,6 +59,7 @@ function csc_event_next_occurrence_form_node_event_edit_form_alter(&$form, FormS
     // Optionally, add a description to explain it's auto-populated.
     $form['field_next_occurrence']['widget'][0]['value']['#description'] = t('This value is automatically calculated and cannot be edited.');
   }
+
 }
 
 /**
@@ -63,39 +101,10 @@ function _csc_event_next_occurrence_update_node(Node $node) {
     if($last_occurrence) {
       $dateval = date('Y-m-d\TH:i:s', $last_occurrence);
       $node->set('field_end_date', $dateval);
-      /* old way doesn't save it
-      $end_date_field = $node->get('field_end_date');
-      $end_date_field->setValue([
-        ['value' => $dateval]
-      ]);
-      */
     }
   }
 }
 
-
-/**
- * Implements hook_form_alter().
- */
-function csc_event_next_occurrence_form_alter(&$form, FormStateInterface $form_state, $form_id) {
-  // Target the node edit form for "event" content type
-  if ($form_id === 'node_event_edit_form') {
-
-    $node = $form_state->getFormObject()->getEntity();
-
-    if ($node->hasField('field_end_date')) {
-      // Show the End date value in the field and make it read only
-      $end_date_value = $node->get('field_end_date')->value;
-
-      // Convert to DrupalDateTime — required for datetime widgets.
-      $date_object = new DrupalDateTime($end_date_value);
-
-      // Set as the widget's default value.
-      $form['field_end_date']['widget'][0]['value']['#attributes']['readonly'] = 'readonly';
-      $form['field_end_date']['widget'][0]['value']['#default_value'] = $date_object;
-    }
-  }
-}
 
 /**
  * Implements hook_cron().
